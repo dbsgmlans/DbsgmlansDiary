@@ -10,6 +10,12 @@
             background-color: #eaf6ff;
         }
 
+        /* ⭐ 핵심 */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
         h2 {
             text-align: center;
         }
@@ -48,6 +54,8 @@
 </head>
 <body>
 
+<div class="container">
+
 <h2>ToDo 체크시트 v2</h2>
 
 <input id="input-box" placeholder="할 일을 입력하세요">
@@ -55,15 +63,15 @@
 
 <ul id="list"></ul>
 
+</div>
+
 <script>
 let todos = JSON.parse(localStorage.getItem('todos')) || [];
 
-// 저장
 function save() {
     localStorage.setItem('todos', JSON.stringify(todos));
 }
 
-// 렌더링
 function render() {
     const list = document.getElementById('list');
     list.innerHTML = "";
@@ -73,21 +81,17 @@ function render() {
         li.draggable = true;
         li.dataset.index = index;
 
-        // 드래그 시작
         li.addEventListener('dragstart', () => {
             li.classList.add('dragging');
         });
 
-        // 드래그 끝
         li.addEventListener('dragend', () => {
             li.classList.remove('dragging');
         });
 
-        // 텍스트
         const span = document.createElement('span');
         span.innerText = todo;
 
-        // 삭제 버튼
         const delBtn = document.createElement('button');
         delBtn.innerText = "삭제";
         delBtn.onclick = () => {
@@ -102,7 +106,6 @@ function render() {
     });
 }
 
-// 드래그 위치 계산
 function getAfterElement(y) {
     const items = [...document.querySelectorAll('#list li:not(.dragging)')];
 
@@ -120,7 +123,6 @@ function getAfterElement(y) {
 
 const list = document.getElementById('list');
 
-// 드래그 중 위치 변경
 list.addEventListener('dragover', (e) => {
     e.preventDefault();
     const dragging = document.querySelector('.dragging');
@@ -135,7 +137,6 @@ list.addEventListener('dragover', (e) => {
     }
 });
 
-// 드롭 후 순서 저장
 list.addEventListener('drop', () => {
     const newTodos = [];
 
@@ -149,7 +150,6 @@ list.addEventListener('drop', () => {
     render();
 });
 
-// 추가
 function addTodo() {
     const input = document.getElementById('input-box');
     const text = input.value.trim();
@@ -163,14 +163,12 @@ function addTodo() {
     render();
 }
 
-// 엔터키 추가
 document.getElementById('input-box').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         addTodo();
     }
 });
 
-// 초기 실행
 render();
 </script>
 
