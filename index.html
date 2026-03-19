@@ -7,6 +7,7 @@
         body {
             font-family: sans-serif;
             padding: 20px;
+            background-color: #eaf6ff; /* 파스텔 하늘색 */
         }
 
         h2 {
@@ -26,6 +27,10 @@
         ul {
             margin-top: 20px;
         }
+
+        li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -38,19 +43,38 @@
 <ul id="list"></ul>
 
 <script>
+let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+// 화면에 그리기
+function render() {
+    const list = document.getElementById('list');
+    list.innerHTML = "";
+
+    todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.innerText = todo;
+        list.appendChild(li);
+    });
+}
+
+// 추가
 function addTodo() {
     const input = document.getElementById('input-box');
-    const text = input.value;
+    const text = input.value.trim();
 
     if (text === "") return;
 
-    const li = document.createElement('li');
-    li.innerText = text;
+    todos.push(text);
 
-    document.getElementById('list').appendChild(li);
+    // 저장
+    localStorage.setItem('todos', JSON.stringify(todos));
 
     input.value = "";
+    render();
 }
+
+// 처음 들어올 때 실행
+render();
 </script>
 
 </body>
