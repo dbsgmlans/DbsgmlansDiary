@@ -1,68 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>ToDo 체크리스트</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-
-        h2 {
-            text-align: center;
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-
-        .time {
-            text-align: center;
-            color: gray;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        input { padding: 10px; font-size: 16px; width: 70%; }
-        button { padding: 10px; }
-
-        ul { list-style: none; padding: 0; margin-top: 20px; }
-
-        li {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            align-items: center;
-            cursor: grab;
-        }
-
-        .number {
-            width: 30px;
-            font-weight: bold;
-        }
-
-        .text {
-            flex: 1;
-            cursor: pointer;
-        }
-
-        .done {
-            text-decoration: line-through;
-            color: gray;
-        }
-
-        .dragging {
-            opacity: 0.5;
-        }
-    </style>
-</head>
-<body>
-
-<h2>📌 ToDo 리스트</h2>
-<div class="time" id="time"></div>
-
-<input id="todo-input" placeholder="할 일을 입력하세요">
-<button id="add-btn">추가</button>
-
-<ul id="todo-list"></ul>
-
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+
     let todos = JSON.parse(localStorage.getItem('todos')) || [];
 
     function save() {
@@ -85,7 +23,6 @@
             li.draggable = true;
             li.dataset.index = index;
 
-            // 드래그 시작
             li.addEventListener('dragstart', () => {
                 li.classList.add('dragging');
             });
@@ -94,12 +31,10 @@
                 li.classList.remove('dragging');
             });
 
-            // 번호
             const number = document.createElement('span');
             number.className = "number";
             number.innerText = index + 1;
 
-            // 텍스트
             const span = document.createElement('span');
             span.className = "text";
             span.innerText = todo.text;
@@ -111,7 +46,6 @@
                 render();
             };
 
-            // 삭제
             const delBtn = document.createElement('button');
             delBtn.innerText = "삭제";
             delBtn.onclick = () => {
@@ -127,51 +61,6 @@
         });
     }
 
-    // 드래그 위치 계산
-    function getAfterElement(y) {
-        const els = [...document.querySelectorAll('#todo-list li:not(.dragging)')];
-
-        return els.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    const list = document.getElementById('todo-list');
-
-    list.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const dragging = document.querySelector('.dragging');
-        const after = getAfterElement(e.clientY);
-
-        if (!dragging) return;
-
-        if (after == null) {
-            list.appendChild(dragging);
-        } else {
-            list.insertBefore(dragging, after);
-        }
-    });
-
-    list.addEventListener('drop', () => {
-        const newTodos = [];
-
-        document.querySelectorAll('#todo-list li').forEach(li => {
-            const idx = li.dataset.index;
-            newTodos.push(todos[idx]);
-        });
-
-        todos = newTodos;
-        save();
-        render();
-    });
-
     function addTodo() {
         const input = document.getElementById('todo-input');
         const text = input.value.trim();
@@ -185,20 +74,16 @@
         render();
     }
 
-    // ✅ 버튼 클릭
+    // 버튼 이벤트
     document.getElementById('add-btn').addEventListener('click', addTodo);
 
-    // ✅ 엔터 입력
+    // 엔터 이벤트
     document.getElementById('todo-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            addTodo();
-        }
+        if (e.key === 'Enter') addTodo();
     });
 
-    // 최초 실행
     render();
     updateTime();
-</script>
 
-</body>
-</html>
+});
+</script>
