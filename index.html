@@ -36,14 +36,17 @@ li {
   margin-bottom:8px;
   padding:10px;
   display:flex;
-  gap:10px;
   align-items:center;
   border-radius:8px;
+  cursor:pointer;
 }
 
 .pinned { background:#ffd166; }
 
-.number { width:30px; }
+.number {
+  width:30px;
+  font-weight:bold;
+}
 
 .text {
   flex:1;
@@ -54,11 +57,16 @@ li {
   color:#888;
 }
 
+.actions {
+  display:flex;
+  gap:5px;
+}
+
 .btn {
-  cursor:pointer;
   padding:3px 6px;
   background:#ccc;
   border-radius:5px;
+  cursor:pointer;
 }
 
 .dragging { opacity:0.5; }
@@ -105,7 +113,6 @@ const searchInput = document.getElementById("search");
 
 let allData = [];
 
-// 🔥 todos 컬렉션 사용
 db.collection("todos").onSnapshot(snapshot => {
   allData = [];
   snapshot.forEach(doc => {
@@ -129,7 +136,10 @@ function renderList() {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
 
-    // 최신순
+    // order 우선
+    if (a.order != null && b.order != null) return a.order - b.order;
+
+    // fallback 최신순
     if (!a.createdAt) return 1;
     if (!b.createdAt) return -1;
 
@@ -143,7 +153,7 @@ function renderList() {
 
     if (data.pinned) li.classList.add("pinned");
 
-    // 드래그 (핀 제외 + 검색 아닐 때)
+    // 드래그
     if (!data.pinned && !keyword) {
       li.draggable = true;
 
@@ -163,22 +173,29 @@ function renderList() {
 
     li.dataset.id = data.id;
 
+    // 🔥 전체 클릭 시 done 토글
+    li.addEventListener("click", () => {
+      db.collection("todos").doc(data.id).update({
+        done: !data.done
+      });
+    });
+
     li.innerHTML = `
-      <input type="checkbox" ${data.done ? "checked" : ""} onchange="toggleDone('${data.id}', this.checked)">
       <span class="number">${index++}</span>
       <span class="text ${data.done ? "done" : ""}">${data.text}</span>
-      <span class="btn" onclick="togglePin('${data.id}', ${data.pinned ? false : true})">
-        ${data.pinned ? "📌해제" : "📌"}
-      </span>
-      <span class="btn" onclick="editItem('${data.id}', \`${data.text}\`)">수정</span>
-      <span class="btn" onclick="deleteItem('${data.id}')">삭제</span>
+      <div class="actions">
+        <span class="btn" onclick="event.stopPropagation(); togglePin('${data.id}', ${data.pinned ? false : true})">
+          ${data.pinned ? "📌해제" : "📌"}
+        </span>
+        <span class="btn" onclick="event.stopPropagation(); editItem('${data.id}', \`${data.text}\`)">수정</span>
+        <span class="btn" onclick="event.stopPropagation(); deleteItem('${data.id}')">삭제</span>
+      </div>
     `;
 
     list.appendChild(li);
   });
 }
 
-// 추가
 function addItem() {
   const text = input.value.trim();
   if (!text) return;
@@ -187,18 +204,17 @@ function addItem() {
     text,
     createdAt: new Date(),
     pinned: false,
-    done: false
+    done: false,
+    order: Date.now()
   });
 
   input.value = "";
 }
 
-// 삭제
 function deleteItem(id) {
   db.collection("todos").doc(id).delete();
 }
 
-// 수정
 function editItem(id, oldText) {
   const newText = prompt("수정:", oldText);
   if (!newText) return;
@@ -206,24 +222,16 @@ function editItem(id, oldText) {
   db.collection("todos").doc(id).update({ text: newText });
 }
 
-// 핀
 function togglePin(id, value) {
   db.collection("todos").doc(id).update({ pinned: value });
 }
 
-// 체크
-function toggleDone(id, value) {
-  db.collection("todos").doc(id).update({ done: value });
-}
-
-// 전체 체크
 function toggleAll(state) {
   allData.forEach(item => {
     db.collection("todos").doc(item.id).update({ done: state });
   });
 }
 
-// 드래그 위치 계산
 list.addEventListener("dragover", (e) => {
   e.preventDefault();
 
@@ -254,7 +262,6 @@ function getDragAfterElement(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-// 엔터 입력
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") addItem();
 });
