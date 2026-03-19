@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>ToDo 체크시트 v2</title>
+    <title>Todo 체크리스트</title>
     <style>
         body {
             font-family: sans-serif;
@@ -10,7 +10,6 @@
             background-color: #eaf6ff;
         }
 
-        /* ⭐ 핵심 */
         .container {
             max-width: 700px;
             margin: 0 auto;
@@ -20,10 +19,16 @@
             text-align: center;
         }
 
+        /* ⭐ 입력창 + 버튼 한 줄 정렬 */
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
         input {
+            flex: 1;
             padding: 10px;
             font-size: 16px;
-            width: 70%;
         }
 
         button {
@@ -56,10 +61,12 @@
 
 <div class="container">
 
-<h2>ToDo 체크시트 v2</h2>
+<h2>Todo 체크리스트</h2>
 
-<input id="input-box" placeholder="할 일을 입력하세요">
-<button onclick="addTodo()">추가</button>
+<div class="input-area">
+    <input id="input-box" placeholder="할 일을 입력하세요">
+    <button onclick="addTodo()">추가</button>
+</div>
 
 <ul id="list"></ul>
 
