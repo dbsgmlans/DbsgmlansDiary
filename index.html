@@ -1,89 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ToDo 체크시트 v1</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 70%;
+        }
+
+        button {
+            padding: 10px;
+        }
+
+        ul {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>ToDo 체크시트 v1</h2>
+
+<input id="input-box" placeholder="할 일을 입력하세요">
+<button onclick="addTodo()">추가</button>
+
+<ul id="list"></ul>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+function addTodo() {
+    const input = document.getElementById('input-box');
+    const text = input.value;
 
-    let todos = JSON.parse(localStorage.getItem('todos')) || [];
+    if (text === "") return;
 
-    function save() {
-        localStorage.setItem('todos', JSON.stringify(todos));
-        updateTime();
-    }
+    const li = document.createElement('li');
+    li.innerText = text;
 
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('time').innerText =
-            "마지막 수정: " + now.toLocaleString();
-    }
+    document.getElementById('list').appendChild(li);
 
-    function render() {
-        const list = document.getElementById('todo-list');
-        list.innerHTML = "";
-
-        todos.forEach((todo, index) => {
-            const li = document.createElement('li');
-            li.draggable = true;
-            li.dataset.index = index;
-
-            li.addEventListener('dragstart', () => {
-                li.classList.add('dragging');
-            });
-
-            li.addEventListener('dragend', () => {
-                li.classList.remove('dragging');
-            });
-
-            const number = document.createElement('span');
-            number.className = "number";
-            number.innerText = index + 1;
-
-            const span = document.createElement('span');
-            span.className = "text";
-            span.innerText = todo.text;
-            if (todo.done) span.classList.add('done');
-
-            span.onclick = () => {
-                todos[index].done = !todos[index].done;
-                save();
-                render();
-            };
-
-            const delBtn = document.createElement('button');
-            delBtn.innerText = "삭제";
-            delBtn.onclick = () => {
-                todos.splice(index, 1);
-                save();
-                render();
-            };
-
-            li.appendChild(number);
-            li.appendChild(span);
-            li.appendChild(delBtn);
-            list.appendChild(li);
-        });
-    }
-
-    function addTodo() {
-        const input = document.getElementById('todo-input');
-        const text = input.value.trim();
-
-        if (text === "") return;
-
-        todos.push({ text: text, done: false });
-        input.value = "";
-
-        save();
-        render();
-    }
-
-    // 버튼 이벤트
-    document.getElementById('add-btn').addEventListener('click', addTodo);
-
-    // 엔터 이벤트
-    document.getElementById('todo-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') addTodo();
-    });
-
-    render();
-    updateTime();
-
-});
+    input.value = "";
+}
 </script>
+
+</body>
+</html>
