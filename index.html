@@ -69,10 +69,11 @@
             const li = document.createElement('li');
             li.draggable = true;
 
-            // 드래그 이벤트
+            // ⭐ 중요: 항상 index 저장
+            li.dataset.index = index;
+
             li.addEventListener('dragstart', () => {
                 li.classList.add('dragging');
-                li.dataset.index = index;
             });
 
             li.addEventListener('dragend', () => {
@@ -110,31 +111,9 @@
             li.appendChild(delBtn);
             list.appendChild(li);
         });
-
-        // 드롭 영역 처리
-        list.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const dragging = document.querySelector('.dragging');
-            const afterElement = getDragAfterElement(list, e.clientY);
-
-            if (afterElement == null) {
-                list.appendChild(dragging);
-            } else {
-                list.insertBefore(dragging, afterElement);
-            }
-        });
-
-        list.addEventListener('drop', () => {
-            const newOrder = [];
-            document.querySelectorAll('#todo-list li').forEach(li => {
-                newOrder.push(todos[li.dataset.index]);
-            });
-            todos = newOrder;
-            save();
-            render();
-        });
     }
 
+    // 드래그 위치 계산
     function getDragAfterElement(container, y) {
         const elements = [...container.querySelectorAll('li:not(.dragging)')];
 
@@ -150,6 +129,35 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
+    const list = document.getElementById('todo-list');
+
+    list.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        const afterElement = getDragAfterElement(list, e.clientY);
+
+        if (afterElement == null) {
+            list.appendChild(dragging);
+        } else {
+            list.insertBefore(dragging, afterElement);
+        }
+    });
+
+    list.addEventListener('drop', () => {
+        const newOrder = [];
+
+        document.querySelectorAll('#todo-list li').forEach(li => {
+            const idx = li.dataset.index;
+            if (idx !== undefined) {
+                newOrder.push(todos[idx]);
+            }
+        });
+
+        todos = newOrder;
+        save();
+        render();
+    });
+
     function addTodo() {
         const input = document.getElementById('todo-input');
         if (!input.value.trim()) return;
@@ -161,8 +169,8 @@
         render();
     }
 
-    // ✅ 엔터로 추가
-    document.getElementById('todo-input').addEventListener('keypress', (e) => {
+    // ✅ 엔터키 추가
+    document.getElementById('todo-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             addTodo();
         }
