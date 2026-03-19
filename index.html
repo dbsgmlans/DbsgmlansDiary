@@ -1,239 +1,263 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>Todo 체크리스트</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #eaf6ff; /* 파스텔 하늘색 */
-            padding: 40px 20px;
-        }
+<meta charset="UTF-8">
+<title>ToDo 체크리스트</title>
 
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
+<style>
+body {
+  font-family: Arial;
+  background: #bde0fe;
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}
 
-        h2 {
-            text-align: center;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
+.container {
+  width: 700px;
+  background: rgba(255,255,255,0.9);
+  padding: 20px;
+  border-radius: 15px;
+}
 
-        .input-area {
-            display: flex;
-            gap: 10px;
-        }
+.input-area, .search-area {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
 
-        input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            font-size: 15px;
-        }
+input { flex:1; padding:10px; }
+button { padding:10px; background:#a2d2ff; border:none; cursor:pointer; }
 
-        button {
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: none;
-            background-color: #4f8cff;
-            color: white;
-            cursor: pointer;
-        }
+ul { list-style:none; padding:0; }
 
-        button:hover {
-            background-color: #3a6fd8;
-        }
+li {
+  background:#eee;
+  margin-bottom:8px;
+  padding:10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  border-radius:8px;
+}
 
-        ul {
-            margin-top: 20px;
-            padding: 0;
-        }
+.pinned { background:#ffd166; }
 
-        li {
-            list-style: none;
-            padding: 12px;
-            margin-bottom: 10px;
-            background: white;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            cursor: grab;
-            transition: 0.2s;
-        }
+.number { width:30px; }
 
-        li:hover {
-            transform: translateY(-2px);
-        }
+.text {
+  flex:1;
+}
 
-        .number {
-            width: 25px;
-            color: #888;
-        }
+.done {
+  text-decoration: line-through;
+  color:#888;
+}
 
-        .text {
-            flex: 1;
-            cursor: pointer;
-        }
+.btn {
+  cursor:pointer;
+  padding:3px 6px;
+  background:#ccc;
+  border-radius:5px;
+}
 
-        .done {
-            text-decoration: line-through;
-            color: #aaa;
-        }
-
-        .dragging {
-            opacity: 0.5;
-        }
-    </style>
+.dragging { opacity:0.5; }
+</style>
 </head>
+
 <body>
-
 <div class="container">
+<h1>✅ ToDo 체크리스트</h1>
 
-<h2>Todo 체크리스트</h2>
+<div class="search-area">
+<input id="search" placeholder="검색..." oninput="renderList()" />
+</div>
 
 <div class="input-area">
-    <input id="input-box" placeholder="할 일을 입력하세요">
-    <button onclick="addTodo()">추가</button>
+<input id="input" placeholder="할 일 입력..." />
+<button onclick="addItem()">추가</button>
+</div>
+
+<div class="input-area">
+<button onclick="toggleAll(true)">전체 완료</button>
+<button onclick="toggleAll(false)">전체 해제</button>
 </div>
 
 <ul id="list"></ul>
-
 </div>
 
-<script>
-let todos = JSON.parse(localStorage.getItem('todos')) || [];
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-function save() {
-    localStorage.setItem('todos', JSON.stringify(todos));
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyARCJuDrfDTlo-H-3mfnFbFTuYAh-3-LlM",
+  authDomain: "squid-4f3c7.firebaseapp.com",
+  projectId: "squid-4f3c7"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const input = document.getElementById("input");
+const list = document.getElementById("list");
+const searchInput = document.getElementById("search");
+
+let allData = [];
+
+// 🔥 todos 컬렉션 사용
+db.collection("todos").onSnapshot(snapshot => {
+  allData = [];
+  snapshot.forEach(doc => {
+    allData.push({ id: doc.id, ...doc.data() });
+  });
+  renderList();
+});
+
+function renderList() {
+  list.innerHTML = "";
+
+  const keyword = searchInput.value.toLowerCase();
+
+  let filtered = allData.filter(item =>
+    item.text && item.text.toLowerCase().includes(keyword)
+  );
+
+  filtered.sort((a, b) => {
+
+    // 핀 먼저
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+
+    // 최신순
+    if (!a.createdAt) return 1;
+    if (!b.createdAt) return -1;
+
+    return b.createdAt.seconds - a.createdAt.seconds;
+  });
+
+  let index = 1;
+
+  filtered.forEach(data => {
+    const li = document.createElement("li");
+
+    if (data.pinned) li.classList.add("pinned");
+
+    // 드래그 (핀 제외 + 검색 아닐 때)
+    if (!data.pinned && !keyword) {
+      li.draggable = true;
+
+      li.addEventListener("dragstart", () => li.classList.add("dragging"));
+
+      li.addEventListener("dragend", async () => {
+        li.classList.remove("dragging");
+
+        const elements = [...document.querySelectorAll("#list li:not(.pinned)")];
+
+        for (let i = 0; i < elements.length; i++) {
+          const id = elements[i].dataset.id;
+          await db.collection("todos").doc(id).update({ order: i });
+        }
+      });
+    }
+
+    li.dataset.id = data.id;
+
+    li.innerHTML = `
+      <input type="checkbox" ${data.done ? "checked" : ""} onchange="toggleDone('${data.id}', this.checked)">
+      <span class="number">${index++}</span>
+      <span class="text ${data.done ? "done" : ""}">${data.text}</span>
+      <span class="btn" onclick="togglePin('${data.id}', ${data.pinned ? false : true})">
+        ${data.pinned ? "📌해제" : "📌"}
+      </span>
+      <span class="btn" onclick="editItem('${data.id}', \`${data.text}\`)">수정</span>
+      <span class="btn" onclick="deleteItem('${data.id}')">삭제</span>
+    `;
+
+    list.appendChild(li);
+  });
 }
 
-function render() {
-    const list = document.getElementById('list');
-    list.innerHTML = "";
+// 추가
+function addItem() {
+  const text = input.value.trim();
+  if (!text) return;
 
-    todos.forEach((todo, index) => {
-        const li = document.createElement('li');
-        li.draggable = true;
-        li.dataset.index = index;
+  db.collection("todos").add({
+    text,
+    createdAt: new Date(),
+    pinned: false,
+    done: false
+  });
 
-        li.addEventListener('dragstart', () => {
-            li.classList.add('dragging');
-        });
+  input.value = "";
+}
 
-        li.addEventListener('dragend', () => {
-            li.classList.remove('dragging');
-        });
+// 삭제
+function deleteItem(id) {
+  db.collection("todos").doc(id).delete();
+}
 
-        // 번호
-        const number = document.createElement('span');
-        number.className = "number";
-        number.innerText = index + 1;
+// 수정
+function editItem(id, oldText) {
+  const newText = prompt("수정:", oldText);
+  if (!newText) return;
 
-        // 텍스트
-        const span = document.createElement('span');
-        span.className = "text";
-        span.innerText = todo.text || todo;
+  db.collection("todos").doc(id).update({ text: newText });
+}
 
-        if (todo.done) span.classList.add('done');
+// 핀
+function togglePin(id, value) {
+  db.collection("todos").doc(id).update({ pinned: value });
+}
 
-        span.onclick = () => {
-            if (typeof todos[index] === "string") {
-                todos[index] = { text: todo, done: false };
-            }
-            todos[index].done = !todos[index].done;
-            save();
-            render();
-        };
+// 체크
+function toggleDone(id, value) {
+  db.collection("todos").doc(id).update({ done: value });
+}
 
-        // 삭제 버튼
-        const delBtn = document.createElement('button');
-        delBtn.innerText = "삭제";
-        delBtn.onclick = () => {
-            todos.splice(index, 1);
-            save();
-            render();
-        };
-
-        li.appendChild(number);
-        li.appendChild(span);
-        li.appendChild(delBtn);
-        list.appendChild(li);
-    });
+// 전체 체크
+function toggleAll(state) {
+  allData.forEach(item => {
+    db.collection("todos").doc(item.id).update({ done: state });
+  });
 }
 
 // 드래그 위치 계산
-function getAfterElement(y) {
-    const items = [...document.querySelectorAll('#list li:not(.dragging)')];
+list.addEventListener("dragover", (e) => {
+  e.preventDefault();
 
-    return items.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
+  const dragging = document.querySelector(".dragging");
+  if (!dragging) return;
 
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
+  const afterElement = getDragAfterElement(list, e.clientY);
 
-const list = document.getElementById('list');
+  if (afterElement == null) {
+    list.appendChild(dragging);
+  } else {
+    list.insertBefore(dragging, afterElement);
+  }
+});
 
-list.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const dragging = document.querySelector('.dragging');
-    const after = getAfterElement(e.clientY);
+function getDragAfterElement(container, y) {
+  const elements = [...container.querySelectorAll("li:not(.dragging):not(.pinned)")];
 
-    if (!dragging) return;
+  return elements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
 
-    if (after == null) {
-        list.appendChild(dragging);
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child };
     } else {
-        list.insertBefore(dragging, after);
+      return closest;
     }
-});
-
-list.addEventListener('drop', () => {
-    const newTodos = [];
-
-    document.querySelectorAll('#list li').forEach(li => {
-        const idx = li.dataset.index;
-        newTodos.push(todos[idx]);
-    });
-
-    todos = newTodos;
-    save();
-    render();
-});
-
-// 추가
-function addTodo() {
-    const input = document.getElementById('input-box');
-    const text = input.value.trim();
-
-    if (text === "") return;
-
-    todos.push({ text: text, done: false });
-    input.value = "";
-
-    save();
-    render();
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-// 엔터 추가
-document.getElementById('input-box').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        addTodo();
-    }
+// 엔터 입력
+input.addEventListener("keypress", e => {
+  if (e.key === "Enter") addItem();
 });
-
-render();
 </script>
-
 </body>
 </html>
