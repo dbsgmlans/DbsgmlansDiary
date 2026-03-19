@@ -5,17 +5,44 @@
     <title>ToDo 체크리스트</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
+
+        h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
         input { padding: 10px; font-size: 16px; width: 70%; }
         button { padding: 10px; }
+
         ul { list-style: none; padding: 0; margin-top: 20px; }
+
         li {
             padding: 10px;
             border-bottom: 1px solid #ddd;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            cursor: grab;
         }
-        .done { text-decoration: line-through; color: gray; }
+
+        .number {
+            width: 30px;
+            font-weight: bold;
+        }
+
+        .text {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .done {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -40,8 +67,26 @@
 
         todos.forEach((todo, index) => {
             const li = document.createElement('li');
+            li.draggable = true;
 
+            // 드래그 이벤트
+            li.addEventListener('dragstart', () => {
+                li.classList.add('dragging');
+                li.dataset.index = index;
+            });
+
+            li.addEventListener('dragend', () => {
+                li.classList.remove('dragging');
+            });
+
+            // 번호
+            const number = document.createElement('span');
+            number.className = "number";
+            number.innerText = index + 1;
+
+            // 텍스트
             const span = document.createElement('span');
+            span.className = "text";
             span.innerText = todo.text;
             if (todo.done) span.classList.add('done');
 
@@ -51,6 +96,7 @@
                 render();
             };
 
+            // 삭제 버튼
             const delBtn = document.createElement('button');
             delBtn.innerText = "삭제";
             delBtn.onclick = () => {
@@ -59,10 +105,49 @@
                 render();
             };
 
+            li.appendChild(number);
             li.appendChild(span);
             li.appendChild(delBtn);
             list.appendChild(li);
         });
+
+        // 드롭 영역 처리
+        list.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const dragging = document.querySelector('.dragging');
+            const afterElement = getDragAfterElement(list, e.clientY);
+
+            if (afterElement == null) {
+                list.appendChild(dragging);
+            } else {
+                list.insertBefore(dragging, afterElement);
+            }
+        });
+
+        list.addEventListener('drop', () => {
+            const newOrder = [];
+            document.querySelectorAll('#todo-list li').forEach(li => {
+                newOrder.push(todos[li.dataset.index]);
+            });
+            todos = newOrder;
+            save();
+            render();
+        });
+    }
+
+    function getDragAfterElement(container, y) {
+        const elements = [...container.querySelectorAll('li:not(.dragging)')];
+
+        return elements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
     function addTodo() {
@@ -75,6 +160,13 @@
         save();
         render();
     }
+
+    // ✅ 엔터로 추가
+    document.getElementById('todo-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addTodo();
+        }
+    });
 
     render();
 </script>
