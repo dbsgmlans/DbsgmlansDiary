@@ -5,9 +5,9 @@
     <title>Todo 체크리스트</title>
     <style>
         body {
-            font-family: sans-serif;
-            padding: 20px;
-            background-color: #eaf6ff;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f7f9fc;
+            padding: 40px 20px;
         }
 
         .container {
@@ -17,9 +17,10 @@
 
         h2 {
             text-align: center;
+            font-weight: 600;
+            margin-bottom: 20px;
         }
 
-        /* ⭐ 입력창 + 버튼 한 줄 정렬 */
         .input-area {
             display: flex;
             gap: 10px;
@@ -27,12 +28,23 @@
 
         input {
             flex: 1;
-            padding: 10px;
-            font-size: 16px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-size: 15px;
         }
 
         button {
-            padding: 10px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            background-color: #4f8cff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #3a6fd8;
         }
 
         ul {
@@ -42,14 +54,35 @@
 
         li {
             list-style: none;
-            padding: 10px;
-            margin-bottom: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             cursor: grab;
+            transition: 0.2s;
+        }
+
+        li:hover {
+            transform: translateY(-2px);
+        }
+
+        .number {
+            width: 25px;
+            color: #888;
+        }
+
+        .text {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .done {
+            text-decoration: line-through;
+            color: #aaa;
         }
 
         .dragging {
@@ -96,9 +129,28 @@ function render() {
             li.classList.remove('dragging');
         });
 
-        const span = document.createElement('span');
-        span.innerText = todo;
+        // 번호
+        const number = document.createElement('span');
+        number.className = "number";
+        number.innerText = index + 1;
 
+        // 텍스트
+        const span = document.createElement('span');
+        span.className = "text";
+        span.innerText = todo.text || todo;
+
+        if (todo.done) span.classList.add('done');
+
+        span.onclick = () => {
+            if (typeof todos[index] === "string") {
+                todos[index] = { text: todo, done: false };
+            }
+            todos[index].done = !todos[index].done;
+            save();
+            render();
+        };
+
+        // 삭제 버튼
         const delBtn = document.createElement('button');
         delBtn.innerText = "삭제";
         delBtn.onclick = () => {
@@ -107,12 +159,14 @@ function render() {
             render();
         };
 
+        li.appendChild(number);
         li.appendChild(span);
         li.appendChild(delBtn);
         list.appendChild(li);
     });
 }
 
+// 드래그 위치 계산
 function getAfterElement(y) {
     const items = [...document.querySelectorAll('#list li:not(.dragging)')];
 
@@ -157,19 +211,21 @@ list.addEventListener('drop', () => {
     render();
 });
 
+// 추가
 function addTodo() {
     const input = document.getElementById('input-box');
     const text = input.value.trim();
 
     if (text === "") return;
 
-    todos.push(text);
+    todos.push({ text: text, done: false });
     input.value = "";
 
     save();
     render();
 }
 
+// 엔터 추가
 document.getElementById('input-box').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         addTodo();
