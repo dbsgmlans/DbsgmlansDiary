@@ -2,12 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>ToDo 체크시트 v1</title>
+    <title>ToDo 체크시트 v2</title>
     <style>
         body {
             font-family: sans-serif;
             padding: 20px;
-            background-color: #eaf6ff; /* 파스텔 하늘색 */
+            background-color: #eaf6ff;
         }
 
         h2 {
@@ -26,16 +26,29 @@
 
         ul {
             margin-top: 20px;
+            padding: 0;
         }
 
         li {
+            list-style: none;
+            padding: 10px;
             margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .dragging {
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
 
-<h2>ToDo 체크시트 v1</h2>
+<h2>ToDo 체크시트 v2</h2>
 
 <input id="input-box" placeholder="할 일을 입력하세요">
 <button onclick="addTodo()">추가</button>
@@ -45,17 +58,96 @@
 <script>
 let todos = JSON.parse(localStorage.getItem('todos')) || [];
 
-// 화면에 그리기
+// 저장
+function save() {
+    localStorage.setItem('todos', JSON.stringify(todos));
+}
+
+// 렌더링
 function render() {
     const list = document.getElementById('list');
     list.innerHTML = "";
 
-    todos.forEach(todo => {
+    todos.forEach((todo, index) => {
         const li = document.createElement('li');
-        li.innerText = todo;
+        li.draggable = true;
+        li.dataset.index = index;
+
+        // 드래그 시작
+        li.addEventListener('dragstart', () => {
+            li.classList.add('dragging');
+        });
+
+        // 드래그 끝
+        li.addEventListener('dragend', () => {
+            li.classList.remove('dragging');
+        });
+
+        // 텍스트
+        const span = document.createElement('span');
+        span.innerText = todo;
+
+        // 삭제 버튼
+        const delBtn = document.createElement('button');
+        delBtn.innerText = "삭제";
+        delBtn.onclick = () => {
+            todos.splice(index, 1);
+            save();
+            render();
+        };
+
+        li.appendChild(span);
+        li.appendChild(delBtn);
         list.appendChild(li);
     });
 }
+
+// 드래그 위치 계산
+function getAfterElement(y) {
+    const items = [...document.querySelectorAll('#list li:not(.dragging)')];
+
+    return items.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+const list = document.getElementById('list');
+
+// 드래그 중 위치 변경
+list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const dragging = document.querySelector('.dragging');
+    const after = getAfterElement(e.clientY);
+
+    if (!dragging) return;
+
+    if (after == null) {
+        list.appendChild(dragging);
+    } else {
+        list.insertBefore(dragging, after);
+    }
+});
+
+// 드롭 후 순서 저장
+list.addEventListener('drop', () => {
+    const newTodos = [];
+
+    document.querySelectorAll('#list li').forEach(li => {
+        const idx = li.dataset.index;
+        newTodos.push(todos[idx]);
+    });
+
+    todos = newTodos;
+    save();
+    render();
+});
 
 // 추가
 function addTodo() {
@@ -65,15 +157,20 @@ function addTodo() {
     if (text === "") return;
 
     todos.push(text);
-
-    // 저장
-    localStorage.setItem('todos', JSON.stringify(todos));
-
     input.value = "";
+
+    save();
     render();
 }
 
-// 처음 들어올 때 실행
+// 엔터키 추가
+document.getElementById('input-box').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        addTodo();
+    }
+});
+
+// 초기 실행
 render();
 </script>
 
